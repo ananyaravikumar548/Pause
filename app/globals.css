@@ -190,12 +190,16 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
 .result-title h2 { margin: 2px 0 0; font-size: 21px; letter-spacing: -.4px; }
 .result-mode { margin-left: auto; padding: 6px 9px; border-radius: 20px; background: var(--blue-soft); color: #596da9; font-size: 9px; font-weight: 600; }
 .result-headline { margin: 18px 0 16px; color: #596789; font-size: 14px; }
-.meter { height: 8px; overflow: hidden; border-radius: 10px; background: #e9edf8; }
-.meter > div { height: 100%; border-radius: inherit; background: var(--blue); transition: width .3s ease; }
-.result-scam .meter > div { background: var(--danger); }
-.result-suspicious .meter > div { background: #c18a31; }
-.result-safe .meter > div { background: var(--success); }
-.meter-caption { display: flex; justify-content: space-between; margin-top: 6px; color: #6e7896; font-size: 10px; font-weight: 600; }
+.risk-caption { display: flex; justify-content: space-between; margin: 18px 0 7px; color: #6e7896; font-size: 11px; font-weight: 600; }
+.risk-caption strong { color: var(--ink); }
+.result-scam .risk-caption strong { color: var(--danger); }
+.result-suspicious .risk-caption strong { color: var(--warning); }
+.result-safe .risk-caption strong { color: var(--success); }
+.risk-meter { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; height: 8px; margin-bottom: 5px; }
+.risk-segment { border-radius: 10px; background: #e9edf8; }
+.risk-safe .risk-segment.active { background: var(--success); }
+.risk-suspicious .risk-segment.active { background: #c18a31; }
+.risk-scam .risk-segment.active { background: var(--danger); }
 .meter-note { margin: 0; color: #929bb1; font-size: 10px; }
 .result-block { margin-top: 19px; padding-top: 15px; border-top: 1px solid #edf0f7; }
 .result-block h3 { margin: 0 0 8px; font-size: 13px; }
@@ -211,7 +215,8 @@ button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visi
 .family-mode { padding: 30px; border: 2px solid #334eac; background: #fff; box-shadow: 0 15px 40px rgba(39, 59, 123, .13); }
 .family-mode .result-title h2 { font-size: 28px; }
 .family-mode .result-headline { color: #17244a; font-size: 20px; line-height: 1.55; }
-.family-mode .meter-caption { color: #263b78; font-size: 14px; }
+.family-mode .risk-caption { color: #263b78; font-size: 14px; }
+.family-mode .risk-caption strong { font-size: 15px; }
 .family-mode .meter-note { color: #53648f; font-size: 12px; }
 .family-mode .result-block { margin-top: 22px; padding-top: 18px; }
 .family-mode .result-block h3 { color: #17244a; font-size: 18px; }

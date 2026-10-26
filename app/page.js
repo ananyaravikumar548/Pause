@@ -8,7 +8,11 @@ const EXAMPLES = [
   ['Fake electricity cutoff', 'FINAL NOTICE: Your electricity service will be disconnected within 2 hours because your meter verification is pending. Call this number immediately and pay a Rs 10 reconnection fee at http://bijli-update-help.xyz. After payment, enter the OTP you receive to confirm your account. Do not visit the local office; this offer is only available by phone today.'],
   ['Fake UPI collect request', 'You have a pending UPI collect request of Rs 2,000 for a refund that will expire in 10 minutes. Open your payment app, approve the request, and enter your UPI PIN to receive the money. The sender says the refund cannot be processed another way and asks you to act immediately.'],
   ['Telegram part-time job', 'Part-time Telegram job: earn Rs 5,000 every day by liking and rating videos from home. No experience is needed, and payment is guaranteed after your first tasks. Pay a Rs 500 registration fee to unlock the work, then send your bank details for salary setup. Do not tell your family or contact the company outside this chat.'],
-  ['Fake KYC alert', 'FINAL ALERT: Your SBI account will be blocked today because KYC verification is pending. Update it immediately at http://sbi-kyc-verify.xyz/login or your account may be suspended. After signing in, share the OTP you receive to confirm your identity. Do not call your branch because the verification window closes in 30 minutes.'],
+  ['Genuine bank notice', 'Your monthly bank statement is ready in the official banking app. Open the app directly to view it when convenient. No reply or immediate action is needed.'],
+];
+const LINK_EXAMPLES = [
+  ['Fake SBI KYC link · demo', 'https://sbi-kyc-update.example/login'],
+  ['Fake Amazon prize link · demo', 'https://amazon-refund-prize.example/claim'],
 ];
 const LABEL = { scam: 'Likely scam', suspicious: 'Be cautious', safe: 'No obvious red flags' };
 const FAMILY_COPY = {
@@ -72,6 +76,11 @@ function Capability({ icon, number, title, children, note }) {
 
 function ResultScreen({ res, familyMode, setFamilyMode, country, lang, onBack, onSpeak, onCopy, copied, whatsappUrl }) {
   const reportCopy = REPORT_COPY[res?.language || lang] || REPORT_COPY.en;
+  const risk = {
+    safe: { label: 'Lower risk', level: 1 },
+    suspicious: { label: 'Needs caution', level: 2 },
+    scam: { label: 'High risk', level: 3 },
+  }[res.verdict] || { label: 'Unclear', level: 1 };
   return <main className="result-page">
     <div className="result-page-nav"><button className="back-link" onClick={onBack}>← Back to your check</button><button className={`family-toggle ${familyMode ? 'is-on' : ''}`} aria-pressed={familyMode} onClick={() => setFamilyMode(value => !value)}><Icon name="speaker" size={15} /> Family mode {familyMode ? 'On' : 'Off'}</button></div>
     <header className="result-page-heading"><span className="eyebrow">YOUR CHECK RESULT</span><h1>Here’s what Pause found.</h1><p>Review the signals and next steps. This is a second opinion, not a guarantee.</p></header>
@@ -79,7 +88,7 @@ function ResultScreen({ res, familyMode, setFamilyMode, country, lang, onBack, o
       <div className="result-title"><span className="result-symbol"><Icon name={res.verdict === 'safe' ? 'check' : 'shield'} size={22} /></span><div><span className="eyebrow">CHECK COMPLETE</span><h2>{LABEL[res.verdict] || 'Check complete'}</h2></div><span className="result-mode">{res.mode === 'ai+checks' ? 'AI + link checks' : 'Pattern checks'}</span></div>
       {familyMode && <div className="family-directive"><span className="eyebrow">PLEASE READ THIS FIRST</span><strong>{FAMILY_COPY[res.language || lang]?.[res.verdict] || FAMILY_COPY.en[res.verdict]}</strong></div>}
       <p className="result-headline">{res.headline}</p>
-      <div className="meter"><div style={{ width: `${Math.max(0, Math.min(100, res.score || 0))}%` }} /></div><div className="meter-caption"><span>Local pattern signals</span><span>{res.score || 0}/100</span></div><p className="meter-note">This number reflects local pattern and link checks only. AI can flag additional warning signs; the score is not a probability or AI confidence.</p>
+      <div className="risk-caption"><span>Risk level</span><strong>{risk.label}</strong></div><div className={`risk-meter risk-${res.verdict || 'unknown'}`} role="meter" aria-label={`Risk level: ${risk.label}`} aria-valuemin="1" aria-valuemax="3" aria-valuenow={risk.level}>{[1, 2, 3].map(level => <span key={level} className={level <= risk.level ? 'risk-segment active' : 'risk-segment'} />)}</div><p className="meter-note">This category follows the final result from pattern checks and AI when available. It is not a probability or a measure of AI confidence.</p>
       {res.reasons?.length > 0 && <div className="result-block"><h3>What stood out</h3><ul>{res.reasons.map((item, index) => <li key={index}>{item}</li>)}</ul></div>}
       {res.evidence?.length > 0 && <div className="result-block"><h3>Link investigation</h3><ul>{res.evidence.map((item, index) => <li key={index}>{item}</li>)}</ul></div>}
       {country === 'IN' && res.verdict !== 'safe' && <div className="reporting-card"><div className="reporting-heading"><span className="reporting-icon"><Icon name="shield" size={18} /></span><div><span className="eyebrow">{reportCopy.eyebrow}</span><h3>{reportCopy.title}</h3></div></div><ol><li>{reportCopy.step1}</li><li>{reportCopy.step2}</li><li>{reportCopy.step3}</li><li>{reportCopy.step4} <a href="https://cybercrime.gov.in" target="_blank" rel="noreferrer">cybercrime.gov.in</a>.</li></ol><a className="call-1930" href="tel:1930"><Icon name="phone" size={16} /> {reportCopy.call}</a></div>}
@@ -185,6 +194,7 @@ export default function Home() {
     window.speechSynthesis.cancel(); window.speechSynthesis.speak(utterance);
   }
   function loadExample(example) { setText(example[1]); setScreenshotNote(''); setLinkInput(''); setInputMode('text'); setRes(null); setErr(''); setImage(null); setImageName(''); navigate('check'); }
+  function loadLinkExample(example) { setText(''); setScreenshotNote(''); setLinkInput(example[1]); setInputMode('link'); setRes(null); setErr(''); setImage(null); setImageName(''); navigate('check'); }
   function clearImage() { setImage(null); setImageName(''); setScreenshotNote(''); setQr(''); if (fileRef.current) fileRef.current.value = ''; }
 
   return <div className="app-shell">
@@ -264,7 +274,7 @@ export default function Home() {
         <div className="checker-submit"><button className="primary-button" disabled={loading || !canCheck} onClick={check}>{loading ? <><span className="spinner" /> Checking the signs…</> : <>Check this {inputMode === 'link' ? 'link' : inputMode === 'screenshot' ? 'screenshot' : 'message'} <Icon name="arrow" size={18} /></>}</button><span><Icon name="lock" size={15} /> No account needed</span></div>
       </section>
       <aside className="checker-sidebar">
-        <section className="sample-list"><div className="sidebar-heading"><span className="eyebrow">QUICK DEMOS</span><span>Click to try</span></div><div className="example-buttons">{EXAMPLES.map(example => <button key={example[0]} onClick={() => loadExample(example)}><span>{example[0]}</span><Icon name="arrow" size={14} /></button>)}</div></section>
+        <section className="sample-list"><div className="sidebar-heading"><span className="eyebrow">QUICK DEMOS</span><span>Click to try</span></div><div className="example-buttons">{inputMode === 'link' ? LINK_EXAMPLES.map(example => <button key={example[0]} onClick={() => loadLinkExample(example)}><span>{example[0]}</span><Icon name="arrow" size={14} /></button>) : EXAMPLES.map(example => <button key={example[0]} onClick={() => loadExample(example)}><span>{example[0]}</span><Icon name="arrow" size={14} /></button>)}</div></section>
         <section className={`ai-status ${aiConfigured === false || rateLimitConfigured === false ? 'ai-status-off' : ''}`} role="status"><span className="ai-status-dot" /><div><strong>{aiConfigured === null || rateLimitConfigured === null ? 'Checking AI and usage limits…' : rateLimitConfigured === false ? 'Shared usage limit not configured' : usageLimitMode === 'development' ? 'Local development mode' : aiConfigured ? 'Groq key and limit settings detected' : 'Groq AI is not configured'}</strong><p>{rateLimitConfigured === false ? <>Production checks stay disabled until you add <code>UPSTASH_REDIS_REST_URL</code> and <code>UPSTASH_REDIS_REST_TOKEN</code> in Vercel. Limits: 3 per minute, 10 per visitor daily, 100 total daily.</> : usageLimitMode === 'development' ? 'Local development does not enforce usage quotas. Production requests are capped at 3 per minute, 10 per visitor daily, and 100 total daily.' : aiConfigured === false ? <>Text checks use local patterns only. Add <code>GROQ_API_KEY</code> to <code>.env.local</code> and restart Next.js.</> : aiConfigured ? 'Production caps: 3 per minute, 10 per visitor daily, 100 total daily. Settings are detected but service connectivity is only checked when you submit.' : 'Checking server configuration.'}</p></div></section>
         <section className="check-method"><span className="eyebrow">WHAT PAUSE REVIEWS</span><div><span className="method-index">01</span><p>Message patterns and requests for money or account details.</p></div><div><span className="method-index">02</span><p>Redirects and domain registration details for links.</p></div><div><span className="method-index">03</span><p>Groq AI adds a second opinion when the server key is configured.</p></div></section>
         <p className="sidebar-privacy"><Icon name="lock" size={15} /> Shared result links leave out the original message.</p>

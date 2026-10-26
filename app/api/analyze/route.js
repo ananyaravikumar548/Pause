@@ -109,8 +109,10 @@ export async function POST(req) {
     }
 
     const aiVerdict = ai && Object.hasOwn(RANK, ai.verdict) ? ai.verdict : null;
-    const aiAccepted = aiVerdict && RANK[aiVerdict] >= RANK[ruleVerdict];
-    const verdict = aiAccepted ? aiVerdict : ruleVerdict;
+    // Let AI clear weak pattern-only warnings, while strong local evidence
+    // (55+) still prevents an unsafe message from being labeled safe.
+    const verdict = aiVerdict ? (score >= 55 ? 'scam' : aiVerdict) : ruleVerdict;
+    const aiAccepted = Boolean(aiVerdict && verdict === aiVerdict);
     const aiReasons = aiAccepted && Array.isArray(ai?.reasons) ? ai.reasons.filter(item => typeof item === 'string').map(item => item.slice(0, 240)).slice(0, 4) : [];
     const reasons = [...new Set([...aiReasons, ...checks.reasons, ...links.reasons])].slice(0, 6);
     const nextSteps = aiAccepted && Array.isArray(ai?.nextSteps) ? ai.nextSteps.filter(item => typeof item === 'string').map(item => item.slice(0, 240)).slice(0, 3) : [];
