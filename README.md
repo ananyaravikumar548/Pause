@@ -55,6 +55,3 @@ Production analysis fails closed if the shared usage-limit store is missing or u
 
 Run `npm run build` before deployment. To run the exploratory API evaluation, start the app locally and then run `npm run eval`. Its small hand-written sample set is a smoke check, not evidence of real-world accuracy.
 
-## Hackathon submission
-
-Explain what the app checks, what the AI contributes, and what remains uncertain. Use only evaluation results you actually ran. Record the demo against the submitted build, and follow the event’s repo and commit-history rules; do not fabricate earlier commits or results.
