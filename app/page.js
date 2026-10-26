@@ -74,7 +74,7 @@ function Capability({ icon, number, title, children, note }) {
   </article>;
 }
 
-function ResultScreen({ res, familyMode, setFamilyMode, country, lang, onBack, onSpeak, onCopy, copied, whatsappUrl }) {
+function ResultScreen({ res, familyMode, setFamilyMode, country, lang, onBack, onSpeak, isSpeaking, onCopy, copied, whatsappUrl }) {
   const reportCopy = REPORT_COPY[res?.language || lang] || REPORT_COPY.en;
   const risk = {
     safe: { label: 'Lower risk', level: 1 },
@@ -93,7 +93,7 @@ function ResultScreen({ res, familyMode, setFamilyMode, country, lang, onBack, o
       {res.evidence?.length > 0 && <div className="result-block"><h3>Link investigation</h3><ul>{res.evidence.map((item, index) => <li key={index}>{item}</li>)}</ul></div>}
       {country === 'IN' && res.verdict !== 'safe' && <div className="reporting-card"><div className="reporting-heading"><span className="reporting-icon"><Icon name="shield" size={18} /></span><div><span className="eyebrow">{reportCopy.eyebrow}</span><h3>{reportCopy.title}</h3></div></div><ol><li>{reportCopy.step1}</li><li>{reportCopy.step2}</li><li>{reportCopy.step3}</li><li>{reportCopy.step4} <a href="https://cybercrime.gov.in" target="_blank" rel="noreferrer">cybercrime.gov.in</a>.</li></ol><a className="call-1930" href="tel:1930"><Icon name="phone" size={16} /> {reportCopy.call}</a></div>}
       <div className="result-block"><h3>What you can do</h3><ul>{res.nextSteps?.map((item, index) => <li key={index}>{item}</li>)}</ul></div>
-      <div className="result-actions">{familyMode ? <a className="whatsapp-button" href={whatsappUrl} target="_blank" rel="noreferrer"><Icon name="message" size={17} /> Share to WhatsApp</a> : <><button className="secondary-button" onClick={onSpeak}><Icon name="speaker" size={17} /> Read aloud</button><button className="secondary-button" onClick={onCopy}><Icon name="message" size={17} /> {copied ? 'Link copied' : 'Share result'}</button><span>Shared links don’t include the original message.</span></>}</div>
+      <div className="result-actions">{familyMode ? <a className="whatsapp-button" href={whatsappUrl} target="_blank" rel="noreferrer"><Icon name="message" size={17} /> Share to WhatsApp</a> : <><button className="secondary-button" onClick={onSpeak} aria-pressed={isSpeaking}><Icon name={isSpeaking ? 'pause' : 'speaker'} size={17} /> {isSpeaking ? 'Stop reading' : 'Read aloud'}</button><button className="secondary-button" onClick={onCopy}><Icon name="message" size={17} /> {copied ? 'Link copied' : 'Share result'}</button><span>Shared links don’t include the original message.</span></>}</div>
       <p className="result-caveat">Pause is a second opinion, not a guarantee. Verify important requests through official channels.</p>
     </section>
   </main>;
@@ -107,7 +107,7 @@ export default function Home() {
   const [text, setText] = useState(''); const [screenshotNote, setScreenshotNote] = useState(''); const [image, setImage] = useState(null); const [imageName, setImageName] = useState('');
   const [country, setCountry] = useState('IN'); const [lang, setLang] = useState('en'); const [qr, setQr] = useState(''); const [loading, setLoading] = useState(false);
   const [inputMode, setInputMode] = useState('text'); const [linkInput, setLinkInput] = useState(''); const [familyMode, setFamilyMode] = useState(false);
-  const [res, setRes] = useState(null); const [err, setErr] = useState(''); const [copied, setCopied] = useState(false);
+  const [res, setRes] = useState(null); const [err, setErr] = useState(''); const [copied, setCopied] = useState(false); const [isSpeaking, setIsSpeaking] = useState(false);
   const fileRef = useRef(null);
   const currentText = inputMode === 'link' ? linkInput : inputMode === 'screenshot' ? screenshotNote : text;
   const linkHints = inputMode === 'link' && linkInput.trim() ? runChecks(linkInput).reasons : [];
@@ -126,6 +126,8 @@ export default function Home() {
   }, []);
 
   function navigate(next) {
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    setIsSpeaking(false);
     setPage(next);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -189,9 +191,12 @@ export default function Home() {
   }
   function speak() {
     if (!res || !('speechSynthesis' in window)) { setErr('Read aloud is not supported in this browser.'); return; }
+    if (isSpeaking) { window.speechSynthesis.cancel(); setIsSpeaking(false); return; }
     const utterance = new SpeechSynthesisUtterance([res.headline, ...res.reasons, ...res.nextSteps].join('. '));
     utterance.lang = { en: 'en-IN', ta: 'ta-IN', hi: 'hi-IN' }[res.language || lang] || 'en-IN';
-    window.speechSynthesis.cancel(); window.speechSynthesis.speak(utterance);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    window.speechSynthesis.cancel(); window.speechSynthesis.speak(utterance); setIsSpeaking(true);
   }
   function loadExample(example) { setText(example[1]); setScreenshotNote(''); setLinkInput(''); setInputMode('text'); setRes(null); setErr(''); setImage(null); setImageName(''); navigate('check'); }
   function loadLinkExample(example) { setText(''); setScreenshotNote(''); setLinkInput(example[1]); setInputMode('link'); setRes(null); setErr(''); setImage(null); setImageName(''); navigate('check'); }
@@ -281,7 +286,7 @@ export default function Home() {
       </aside>
       </div>
 
-    </main> : res ? <ResultScreen res={res} familyMode={familyMode} setFamilyMode={setFamilyMode} country={country} lang={lang} onBack={() => navigate('check')} onSpeak={speak} onCopy={copy} copied={copied} whatsappUrl={familyWhatsAppUrl()} /> : <main className="result-page"><button className="back-link" onClick={() => navigate('check')}>← Back to your check</button><p>No result to show yet. Run a check first.</p></main>}
+    </main> : res ? <ResultScreen res={res} familyMode={familyMode} setFamilyMode={setFamilyMode} country={country} lang={lang} onBack={() => navigate('check')} onSpeak={speak} isSpeaking={isSpeaking} onCopy={copy} copied={copied} whatsappUrl={familyWhatsAppUrl()} /> : <main className="result-page"><button className="back-link" onClick={() => navigate('check')}>← Back to your check</button><p>No result to show yet. Run a check first.</p></main>}
 
     <footer className="site-footer"><button className="brand-button" onClick={() => navigate('start')}><Brand /></button><span>Pause is a helper, not a guarantee.</span><a href="https://cybercrime.gov.in" target="_blank" rel="noreferrer">India cybercrime support <Icon name="arrow" size={14} /></a></footer>
   </div>;
